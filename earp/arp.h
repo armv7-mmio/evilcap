@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define ARP_REPLY_TIMEOUT 5000
+#define ARP_RESOLVE_TIMEOUT 1000
 
 bool arp_resolve(int fd, const char * interface, const char * src_ip, const char * dst_ip, uint8_t * dst_mac, const uint8_t * src_mac);
 

@@ -23,7 +23,7 @@ bool arp_resolve(int fd, const char * interface, const char * src_ip, const char
 	struct ether_arp arpf = {0};
 	struct ether_arp arpf_recv = {0};
 	
-	uint64_t end_time = get_time_ms() + ARP_REPLY_TIMEOUT;
+	uint64_t end_time = get_time_ms() + ARP_RESOLVE_TIMEOUT;
 
 	sll.sll_family = AF_PACKET;
 	sll.sll_protocol = htons(ETH_P_ARP);
@@ -43,14 +43,14 @@ bool arp_resolve(int fd, const char * interface, const char * src_ip, const char
 	arpf.arp_op = htons(ARPOP_REQUEST);
 
 	if(sendto(fd, &arpf, sizeof(arpf), 0,(const struct sockaddr *)&sll, sizeof(arpf)) <= 0){
-		fprintf(stderr, "Error: unable to call sendto: %s\n", strerror(errno));
+		fprintf(stderr, "[X] Error: unable to send: %s\n", strerror(errno));
 		return 1;
 	}
 
 	while(get_time_ms() < end_time) {
 		ssize_t n = recvfrom(fd, &arpf_recv, sizeof(arpf_recv), 0, 0, 0);
 		if (n < 0) {
-			fprintf(stderr, "Error: Falled to recivie frame:\n", strerror(errno));
+			fprintf(stderr, "[X] Error: Falled to recivie frame:\n", strerror(errno));
 			return 1;
 		}
 
@@ -85,26 +85,10 @@ bool arp_reply(int fd, const char * interface, const char * src_ip, const char *
 	arpf.arp_op = htons(ARPOP_REPLY);
 
 	if(sendto(fd, &arpf, sizeof(arpf), 0,(const struct sockaddr *)&sll, sizeof(arpf)) <= 0){
-		fprintf(stderr, "Error: unable to call sendto: %s\n", strerror(errno));
+		fprintf(stderr, "[X] Error: unable to send: %s\n", strerror(errno));
 		return 1;
 	}
 	else {
 		return 0;
 	}
-}
-
-bool get_local_mac(int fd, const char * interface, uint8_t * mac) {
-	struct ifreq ifrq;
-
-	ifrq.ifr_addr.sa_family = AF_INET;
-	strncpy(ifrq.ifr_name, interface, strlen(interface));
-	
-	if(ioctl(fd, SIOCGIFHWADDR, &ifrq) < 0) {
-		fprintf(stderr, "Error: unable to call ioctl: %s\n", strerror(errno));
-		close(fd);
-		return 1;
-	}
-	memcpy(mac, ifrq.ifr_addr.sa_data, 6);
-	
-	return 0;
 }	
