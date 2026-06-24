@@ -13,7 +13,7 @@ bool check_targets_ip(const char * target_a, const char * target_b, bool is_dual
 			return 1;
 		}
 
-		if(!is_valid_ip(target_a) || !is_valid_ip(target_b)) {
+		if(check_ip_format(target_a) || check_ip_format(target_b)) {
 			fprintf(stderr, "[!] One or more target IP invalid\n");
 			return 1;
 		}
@@ -24,7 +24,7 @@ bool check_targets_ip(const char * target_a, const char * target_b, bool is_dual
 			return 1;
 		}
 	
-		if(!is_valid_ip(target_a)) {
+		if(check_ip_format(target_a)) {
 			fprintf(stderr, "[!] Target IP invalid\n");
 			return 1;
 		}
@@ -34,14 +34,24 @@ bool check_targets_ip(const char * target_a, const char * target_b, bool is_dual
 }
 
 bool check_rand_ranges(int rand_min, int rand_max) {
-	if(rand_min < 1) {
+	if(rand_min <= 1) {
 		fprintf(stderr, "[!] Invalid rand_min value\n");
 		return 1;
 	}
 
-	if(rand_max < 1) {
+	if(rand_max <= 1) {
 		fprintf(stderr, "[!] Invalid rand_max value\n");
 		return 1;
+	}
+	
+	if(rand_max > 1000) {
+		fprintf(stderr, "[!] Rand_max must be less than 1000\n");
+		return 1;
+	}
+
+	if(rand_min >= rand_max) {
+		fprintf(stderr, "[!] Rand_max must be greater than rand_mix\n");
+		return 1;	
 	}
 
 	return 0;

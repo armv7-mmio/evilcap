@@ -24,13 +24,13 @@ bool get_local_mac(int fd, const char * interface, uint8_t * mac) {
 	return 0;
 }
 
-bool is_valid_ip(const char * ip_addr) {
+bool check_ip_format(const char * ip_addr) {
 	uint8_t tmp[4];
 	if(inet_pton(AF_INET, ip_addr, &tmp)) {
-		return 1;
+		return 0;
 	}
 	else {
-		return 0;
+		return 1;
 	}
 }
 

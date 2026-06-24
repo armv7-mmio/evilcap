@@ -10,6 +10,7 @@
 #include <linux/if_packet.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+
 #include "arp.h"
 
 static uint64_t get_time_ms() {
@@ -41,25 +42,35 @@ bool arp_resolve(int fd, const char * interface, const char * src_ip, const char
 	arpf.arp_hln = 6;
 	arpf.arp_pln = 4;
 	arpf.arp_op = htons(ARPOP_REQUEST);
+	
+	struct sockaddr * saddr = (struct sockaddr *)&sll;
 
-	if(sendto(fd, &arpf, sizeof(arpf), 0,(const struct sockaddr *)&sll, sizeof(arpf)) <= 0){
+	ssize_t tx_n = sendto(fd, &arpf, sizeof(arpf), 0, saddr, sizeof(sll)); 
+
+	if(tx_n < 0){
 		fprintf(stderr, "[X] Error: unable to send: %s\n", strerror(errno));
 		return 1;
 	}
-
+	
 	while(get_time_ms() < end_time) {
-		ssize_t n = recvfrom(fd, &arpf_recv, sizeof(arpf_recv), 0, 0, 0);
-		if (n < 0) {
+		ssize_t n = recv(fd, &arpf_recv, sizeof(arpf_recv), MSG_DONTWAIT);
+		
+		if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
 			fprintf(stderr, "[X] Error: Falled to recivie frame:\n", strerror(errno));
 			return 1;
 		}
 
-		if(htons(arpf_recv.arp_op) == ARPOP_REPLY) {
-			if(!memcmp(arpf_recv.arp_tha, src_mac, 6) && !memcmp(arpf_recv.arp_spa, arpf.arp_tpa, 4)){
-				memcpy(dst_mac, arpf_recv.arp_sha, 6);
-				return 0;
-			}
-		}
+		if(htons(arpf_recv.arp_op) != ARPOP_REPLY)
+			continue;
+
+		if(memcmp(arpf_recv.arp_tha, src_mac, 6))
+			continue;
+
+		if(memcmp(arpf_recv.arp_spa, arpf.arp_tpa, 4))
+			continue;
+		
+		memcpy(dst_mac, arpf_recv.arp_sha, 6);
+		return 0;
 	}
 	return 1;
 }
@@ -83,12 +94,22 @@ bool arp_reply(int fd, const char * interface, const char * src_ip, const char *
 	arpf.arp_hln = 6;
 	arpf.arp_pln = 4;
 	arpf.arp_op = htons(ARPOP_REPLY);
-
-	if(sendto(fd, &arpf, sizeof(arpf), 0,(const struct sockaddr *)&sll, sizeof(arpf)) <= 0){
+	
+/*	if(sendto(fd, &arpf, sizeof(arpf), 0,(const struct sockaddr *)&sll, sizeof(arpf)) <= 0){
 		fprintf(stderr, "[X] Error: unable to send: %s\n", strerror(errno));
 		return 1;
 	}
 	else {
 		return 0;
 	}
+*/
+	struct sockaddr * saddr = (struct sockaddr *)&sll;
+	ssize_t tx_n = sendto(fd, &arpf, sizeof(arpf), 0, saddr, sizeof(sll)); 
+
+	if(tx_n <= 0){
+		fprintf(stderr, "[X] Error: unable to send: %s\n", strerror(errno));
+		return 1;
+	}
+	
+	return 0;
 }	

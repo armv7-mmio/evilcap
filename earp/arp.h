@@ -5,7 +5,7 @@
 
 #define ARP_RESOLVE_TIMEOUT 1000
 
-bool arp_resolve(int fd, const char * interface, const char * src_ip, const char * dst_ip, uint8_t * dst_mac, const uint8_t * src_mac);
+bool arp_resolve(int fd, const char * interface, const char * src_ip, const char * target_ip, uint8_t * dst_mac, const uint8_t * src_mac);
 
 bool arp_reply(int fd, const char * interface, const char * src_ip, const char * target_ip, const uint8_t * src_mac, const uint8_t * dst_mac);
 

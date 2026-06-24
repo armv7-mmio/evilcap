@@ -15,6 +15,7 @@
 #include <linux/if_packet.h>
 #include <net/if.h>
 #include <getopt.h>
+#include <signal.h>
 
 #include "arp.h"
 #include "netutil.h"
@@ -40,10 +41,38 @@ const struct option long_opts[] = {
 	{0, 0, 0, 0}
 };
 
-uint64_t get_time_ms() {
-	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return (uint64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+typedef struct {
+	int fd;
+	char * interface;
+	char * ip_a;
+	char * ip_b;
+	uint8_t *  mac_src;
+	uint8_t * mac_dst_a;
+	uint8_t * mac_dst_b;
+} cleanup_data_t;
+
+volatile cleanup_data_t cleanup_data = {0};
+
+void cleanup_handler(int sig) {
+	int fd = cleanup_data.fd;
+	char * interface = cleanup_data.interface;
+	char * ip_a = cleanup_data.ip_a;
+	char * ip_b = cleanup_data.ip_b;
+	uint8_t * mac_src = cleanup_data.mac_src;
+	uint8_t * mac_dst_a = cleanup_data.mac_dst_a;
+	uint8_t * mac_dst_b = cleanup_data.mac_dst_b;
+	
+	for(int i = 0; i < 3; i++) {
+		if(cleanup_data.ip_b) {
+			arp_reply(fd, interface, ip_b, ip_a, mac_dst_a, broadcast_mac);
+			arp_reply(fd, interface, ip_a, ip_b, mac_dst_b, broadcast_mac);
+		}
+		else {
+			arp_reply(fd, interface, ip_a, ip_a, mac_dst_a, broadcast_mac);
+		}
+		usleep(333 * 1000);
+	}
+	exit(sig);
 }
 
 int main(int argc, char * argv[]) {	
@@ -136,7 +165,7 @@ int main(int argc, char * argv[]) {
 		bool resolve_b = 0;
 
 		resolve_a = arp_resolve(fd, interface, target_b, target_a, dst_mac, src_mac);
-		resolve_b = arp_resolve(fd, interface, target_a, target_b, dst_mac, src_mac);
+		resolve_b = arp_resolve(fd, interface, target_a, target_b, dst_mac_b, src_mac);
 
 		if(resolve_a)
 			fprintf(stderr, "[!] Unable to resolve target %s\n", target_a);
@@ -154,6 +183,16 @@ int main(int argc, char * argv[]) {
 			exit(1);
 		}
 	}
+	
+	cleanup_data.fd = fd;
+	cleanup_data.interface = interface;
+	cleanup_data.ip_a = target_a;
+	cleanup_data.ip_b = target_b;
+	cleanup_data.mac_src = src_mac;
+	cleanup_data.mac_dst_a = dst_mac;
+	cleanup_data.mac_dst_b = dst_mac_b;
+	
+	signal(SIGINT, cleanup_handler);	
 
 	srandom(time(NULL));
 
