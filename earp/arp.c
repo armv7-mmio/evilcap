@@ -19,7 +19,7 @@ static uint64_t get_time_ms() {
 	return (uint64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
 
-bool arp_resolve(int fd, const char * interface, const char * src_ip, const char * dst_ip, uint8_t * dst_mac, const uint8_t * src_mac) {
+bool arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx) {
 	struct sockaddr_ll sll = {0};
 	struct ether_arp arpf = {0};
 	struct ether_arp arpf_recv = {0};
@@ -33,10 +33,10 @@ bool arp_resolve(int fd, const char * interface, const char * src_ip, const char
 	
 	memset(sll.sll_addr, 0xFF, 6);
 
-	memcpy(arpf.arp_sha, src_mac, 6);
-	if(src_ip)
-		inet_pton(AF_INET, src_ip, arpf.arp_spa);			
-	inet_pton(AF_INET, dst_ip, arpf.arp_tpa);
+	memcpy(arpf.arp_sha, arp_ctx.src_mac, 6);
+	if(arp_ctx.src_ip)
+		inet_pton(AF_INET, arp_ctx.src_ip, arpf.arp_spa);			
+	inet_pton(AF_INET, arp_ctx.dst_ip, arpf.arp_tpa);
 	arpf.arp_hrd = htons(ARPHRD_ETHER);
 	arpf.arp_pro = htons(ETH_P_IP);
 	arpf.arp_hln = 6;
@@ -55,7 +55,10 @@ bool arp_resolve(int fd, const char * interface, const char * src_ip, const char
 	while(get_time_ms() < end_time) {
 		ssize_t n = recv(fd, &arpf_recv, sizeof(arpf_recv), MSG_DONTWAIT);
 		
-		if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+		if (n < 0) {
+			if(errno == EAGAIN || errno == EWOULDBLOCK)
+				continue;
+
 			fprintf(stderr, "[X] Error: Falled to recivie frame:\n", strerror(errno));
 			return 1;
 		}
@@ -63,19 +66,19 @@ bool arp_resolve(int fd, const char * interface, const char * src_ip, const char
 		if(htons(arpf_recv.arp_op) != ARPOP_REPLY)
 			continue;
 
-		if(memcmp(arpf_recv.arp_tha, src_mac, 6))
+		if(memcmp(arpf_recv.arp_tha, arp_ctx.src_mac, 6) != 0)
 			continue;
 
-		if(memcmp(arpf_recv.arp_spa, arpf.arp_tpa, 4))
+		if(memcmp(arpf_recv.arp_spa, arpf.arp_tpa, 4) != 0)
 			continue;
 		
-		memcpy(dst_mac, arpf_recv.arp_sha, 6);
+		memcpy(arp_ctx.dst_mac, arpf_recv.arp_sha, 6);
 		return 0;
 	}
 	return 1;
 }
 
-bool arp_reply(int fd, const char * interface, const char * src_ip, const char * target_ip, const uint8_t * src_mac, const uint8_t * dst_mac) { 
+bool arp_reply(int fd, const char * interface, arp_ctx_t arp_ctx) { 
 	struct sockaddr_ll sll;
 	struct ether_arp arpf;
 	
@@ -83,12 +86,12 @@ bool arp_reply(int fd, const char * interface, const char * src_ip, const char *
 	sll.sll_protocol = htons(ETH_P_ARP);
 	sll.sll_ifindex = if_nametoindex(interface);
 	sll.sll_halen = 6;
-	memcpy(sll.sll_addr, dst_mac, 6);	
+	memcpy(sll.sll_addr, arp_ctx.dst_mac, 6);	
 
-	memcpy(arpf.arp_sha, src_mac, 6);
-	memcpy(arpf.arp_tha, dst_mac, 6);
-	inet_pton(AF_INET, src_ip, arpf.arp_spa);			
-	inet_pton(AF_INET, target_ip, arpf.arp_tpa);
+	memcpy(arpf.arp_sha, arp_ctx.src_mac, 6);
+	memcpy(arpf.arp_tha, arp_ctx.dst_mac, 6);
+	inet_pton(AF_INET, arp_ctx.src_ip, arpf.arp_spa);			
+	inet_pton(AF_INET, arp_ctx.dst_ip, arpf.arp_tpa);
 	arpf.arp_hrd = htons(ARPHRD_ETHER);
 	arpf.arp_pro = htons(ETH_P_IP);
 	arpf.arp_hln = 6;

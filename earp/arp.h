@@ -5,8 +5,15 @@
 
 #define ARP_RESOLVE_TIMEOUT 1000
 
-bool arp_resolve(int fd, const char * interface, const char * src_ip, const char * target_ip, uint8_t * dst_mac, const uint8_t * src_mac);
+typedef struct {
+	char * src_ip;
+	char * dst_ip;
+	uint8_t * src_mac;
+	uint8_t * dst_mac;
+} arp_ctx_t;
 
-bool arp_reply(int fd, const char * interface, const char * src_ip, const char * target_ip, const uint8_t * src_mac, const uint8_t * dst_mac);
+bool arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx);
+
+bool arp_reply(int fd, const char * interface, arp_ctx_t arp_ctx);
 
 bool get_local_mac(int fd, const char * interface, uint8_t * mac);
