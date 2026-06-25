@@ -187,8 +187,8 @@ int main(int argc, char * argv[]) {
 		bool resolve_b = 0;
 		
 		arp_ctx_a.src_mac = src_mac;
-		arp_ctx_a.dst_mac = dst_mac_a;
-		arp_ctx_b.dst_mac = dst_mac_b;
+		arp_ctx_a.dst_mac = dst_mac_b;
+		arp_ctx_b.dst_mac = dst_mac_a;
 		arp_ctx_b.src_mac = src_mac;
 
 		resolve_a = arp_resolve(fd, interface, arp_ctx_a);
@@ -210,7 +210,8 @@ int main(int argc, char * argv[]) {
 		bool resolve = arp_resolve(fd, interface, arp_ctx_a);
 
 		if(resolve) {
-			fprintf(stderr, "[!] Unable to resolve target %s\n[!] Target not resolved\n", arp_ctx_a.dst_ip);
+			fprintf(stderr, "[!] Unable to resolve target %s\n", arp_ctx_a.dst_ip);
+			fprintf(stderr, "[!] Target not resolved\n");
 			exit(1);
 		}
 	}
