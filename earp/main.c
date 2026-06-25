@@ -24,7 +24,6 @@
 #define DELAY_MIN 100
 #define DELAY_MAX 500 
 
-const uint8_t broadcast_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 const char * help_msg = "help message\n-g - gratuitous\n -t - target, etc";
 const char * optstring = "hdgsa:b:t:i:m:M:";
 const struct option long_opts[] = {
@@ -61,7 +60,7 @@ void cleanup_handler(int sig) {
 	uint8_t * mac_src = cleanup_data.mac_src;
 	uint8_t * mac_dst_a = cleanup_data.mac_dst_a;
 	uint8_t * mac_dst_b = cleanup_data.mac_dst_b;
-	
+	uint8_t broadcast_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 	arp_ctx_t arp_ctx_a = {0};
 	arp_ctx_t arp_ctx_b = {0};
@@ -105,6 +104,7 @@ int main(int argc, char * argv[]) {
 	uint8_t src_mac[6];
 	uint8_t dst_mac_a[6];
 	uint8_t dst_mac_b[6];
+	uint8_t broadcast_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 	char * interface = 0;
 
