@@ -35,7 +35,6 @@ const struct option long_opts[] = {
 };
 
 typedef struct {
-	int fd;
 	char * interface;
 	char * ip_a;
 	char * ip_b;
@@ -47,7 +46,13 @@ typedef struct {
 volatile cleanup_data_t cleanup_data = {0};
 
 void cleanup_handler(int sig) {
-	int fd = cleanup_data.fd;
+	int fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
+	
+	if(fd < 0) {
+		fprintf(stderr, "[X] Error: Unable to create socket: %s\n", strerror(errno));
+		exit(1);
+	}
+
 	char * interface = cleanup_data.interface;
 	char * ip_a = cleanup_data.ip_a;
 	char * ip_b = cleanup_data.ip_b;
@@ -60,9 +65,9 @@ void cleanup_handler(int sig) {
 	arp_ctx_t arp_ctx_b = {0};
 
 	if(cleanup_data.ip_b) {
-		arp_ctx_a.src_ip = ip_b;
+		arp_ctx_a.src_ip = ip_a;
 		arp_ctx_a.dst_ip = ip_a;
-		arp_ctx_b.src_ip = ip_a;
+		arp_ctx_b.src_ip = ip_b;
 		arp_ctx_b.dst_ip = ip_b;
 		
 		arp_ctx_a.src_mac = mac_dst_a;
@@ -82,9 +87,9 @@ void cleanup_handler(int sig) {
 		int reply_a = 0, reply_b = 0;		
 		
 		if(cleanup_data.ip_b)
-			reply_b = arp_reply(fd, interface, arp_ctx_b);
+			reply_b = arp_reply_from(fd, interface, arp_ctx_b);
 		
-		reply_a = arp_reply(fd, interface, arp_ctx_a);
+		reply_a = arp_reply_from(fd, interface, arp_ctx_a);
 		
 		if(reply_a != 0 || reply_b != 0) {
 			fprintf(stderr, "ARP send falled while cleanup!\n");
@@ -217,7 +222,6 @@ int main(int argc, char * argv[]) {
 		}
 	}
 	
-	cleanup_data.fd = fd;
 	cleanup_data.interface = interface;
 	cleanup_data.ip_a = arp_ctx_a.dst_ip;
 	cleanup_data.ip_b = arp_ctx_b.dst_ip;

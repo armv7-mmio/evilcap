@@ -112,29 +112,31 @@ int arp_reply(int fd, const char * interface, arp_ctx_t arp_ctx) {
 	
 	return 0;
 }
-/*
+
 int arp_reply_from(int fd, const char * interface, arp_ctx_t arp_ctx) { 
 	struct sockaddr_ll sll;
-	struct ether_arp arpf;
-	
-	sll.sll_family = AF_PACKET;
-	sll.sll_protocol = htons(ETH_P_ARP);
-	sll.sll_ifindex = if_nametoindex(interface);
-	sll.sll_halen = 6;
-	memcpy(sll.sll_addr, arp_ctx.dst_mac, 6);	
+	arp_frame_t arp_f = {0};
+	arp_f.ethh.h_proto = htons(ETH_P_ARP);
+	memcpy(arp_f.ethh.h_source, arp_ctx.src_mac, 6);
+	memcpy(arp_f.ethh.h_dest, arp_ctx.dst_mac, 6);
 
-	memcpy(arpf.arp_sha, arp_ctx.src_mac, 6);
-	memcpy(arpf.arp_tha, arp_ctx.dst_mac, 6);
-	inet_pton(AF_INET, arp_ctx.src_ip, arpf.arp_spa);			
-	inet_pton(AF_INET, arp_ctx.dst_ip, arpf.arp_tpa);
-	arpf.arp_hrd = htons(ARPHRD_ETHER);
-	arpf.arp_pro = htons(ETH_P_IP);
-	arpf.arp_hln = 6;
-	arpf.arp_pln = 4;
-	arpf.arp_op = htons(ARPOP_REPLY);
+	sll.sll_family = AF_PACKET;
+	sll.sll_ifindex = if_nametoindex(interface);
+	sll.sll_protocol = htons(ETH_P_ARP);
+	sll.sll_halen = 6;	
 	
+	memcpy(arp_f.eth_arp.arp_sha, arp_ctx.src_mac, 6);
+	memcpy(arp_f.eth_arp.arp_tha, arp_ctx.dst_mac, 6);
+	inet_pton(AF_INET, arp_ctx.src_ip, arp_f.eth_arp.arp_spa);			
+	inet_pton(AF_INET, arp_ctx.dst_ip, arp_f.eth_arp.arp_tpa);
+	arp_f.eth_arp.arp_hrd = htons(ARPHRD_ETHER);
+	arp_f.eth_arp.arp_pro = htons(ETH_P_IP);
+	arp_f.eth_arp.arp_hln = 6;
+	arp_f.eth_arp.arp_pln = 4;
+	arp_f.eth_arp.arp_op = htons(ARPOP_REPLY);
+
 	struct sockaddr * saddr = (struct sockaddr *)&sll;
-	ssize_t tx_n = sendto(fd, &arpf, sizeof(arpf), 0, saddr, sizeof(sll)); 
+	ssize_t tx_n = sendto(fd, &arp_f, sizeof(arp_f), 0, saddr, sizeof(sll)); 
 
 	if(tx_n <= 0){
 		int err = errno;
@@ -144,4 +146,4 @@ int arp_reply_from(int fd, const char * interface, arp_ctx_t arp_ctx) {
 	
 	return 0;
 }
-*/
+
