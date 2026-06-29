@@ -13,7 +13,7 @@
 
 #include "arp.h"
 
-static uint64_t get_time_ms() {
+static uint64_t get_time_ms(void) {
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return (uint64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
@@ -28,7 +28,7 @@ int arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx) {
 
 	sll.sll_family = AF_PACKET;
 	sll.sll_protocol = htons(ETH_P_ARP);
-	sll.sll_ifindex = if_nametoindex(interface);
+	sll.sll_ifindex = (int)if_nametoindex(interface);
 	sll.sll_halen = 6;
 	
 	memset(sll.sll_addr, 0xFF, 6);
@@ -61,7 +61,7 @@ int arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx) {
 				continue;
 			
 			int err = errno;
-			fprintf(stderr, "[X] Error: Falled to recivie frame:\n", strerror(errno));
+			fprintf(stderr, "[X] Error: Falled to recivie frame: %s\n", strerror(errno));
 			return err;
 		}
 
@@ -87,7 +87,7 @@ int arp_reply(int fd, const char * interface, arp_ctx_t arp_ctx) {
 	
 	sll.sll_family = AF_PACKET;
 	sll.sll_protocol = htons(ETH_P_ARP);
-	sll.sll_ifindex = if_nametoindex(interface);
+	sll.sll_ifindex = (int)if_nametoindex(interface);
 	sll.sll_halen = 6;
 	memcpy(sll.sll_addr, arp_ctx.dst_mac, 6);	
 
@@ -121,7 +121,7 @@ int arp_reply_from(int fd, const char * interface, arp_ctx_t arp_ctx) {
 	memcpy(arp_f.ethh.h_dest, arp_ctx.dst_mac, 6);
 
 	sll.sll_family = AF_PACKET;
-	sll.sll_ifindex = if_nametoindex(interface);
+	sll.sll_ifindex = (int)if_nametoindex(interface);
 	sll.sll_protocol = htons(ETH_P_ARP);
 	sll.sll_halen = 6;	
 	

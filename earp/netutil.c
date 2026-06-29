@@ -34,3 +34,27 @@ bool check_ip_format(const char * ip_addr) {
 	}
 }
 
+bool is_reserved_ip(const char * ip_addr) {
+	uint8_t ip[4] = {0};
+	
+	if(!ip_addr)
+		return 0;
+
+	inet_pton(AF_INET, ip_addr, &ip);
+	
+	switch(ip[0]){
+		case 0:
+			goto ip_is_reserved;
+		case 127:
+			goto ip_is_reserved;
+		default:
+			if(ip[0] > 224)
+				goto ip_is_reserved;
+			else 
+				return 0;
+	}
+
+	ip_is_reserved:
+		fprintf(stderr, "[!] %s is a reserved ip\n", ip_addr);
+		return 1;
+}
