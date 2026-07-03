@@ -1,0 +1,2 @@
+SRCS += $(wildcard earp/*.c)
+
