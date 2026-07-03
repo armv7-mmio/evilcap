@@ -1,4 +1,4 @@
-CC := gcc
+CC := clang
 CFLAGS := -Wall -Wextra -O3
 LDFLAGS := -s -O3
 BUILD_DIR := ./build

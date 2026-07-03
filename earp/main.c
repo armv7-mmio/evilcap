@@ -170,7 +170,7 @@ int main(int argc, char * argv[]) {
 	
 	if(is_dual_target) {
 		if(is_gratuitous) {
-			arp_ctx_a.src_ip = arp_ctx_b.dst_ip;
+			arp_ctx_a.src_ip = arp_ctx_a.dst_ip;
 			arp_ctx_a.dst_mac = broadcast_mac;
 			arp_ctx_b.dst_mac = broadcast_mac;
 			arp_ctx_b.src_ip = arp_ctx_b.dst_ip;
@@ -191,12 +191,13 @@ int main(int argc, char * argv[]) {
 
 	srandom((unsigned int)time(NULL));
 	
-	if(timeout < 1) {
+	if(timeout == 0) {
 		fprintf(stderr, "[!] Timeout is invalid");
 		exit(1);
 	}
 
-	alarm(timeout);
+	if(timeout > 0) 
+		alarm(timeout);
 
 	for(;;) {
 		uint16_t delay_ms = rand_min + (uint16_t) random() % (rand_max - rand_min);
