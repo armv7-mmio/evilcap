@@ -11,6 +11,7 @@
 
 #include "arp.h"
 #include "util.h"
+#include "log.h"
 
 extern volatile sig_atomic_t is_stopping;
 volatile sig_atomic_t sig_num;
@@ -30,7 +31,8 @@ void signal_handler(int sig) {
 }
 
 void do_cleanup(cleanup_data_t cleanup_data) {
-        if(sig_num == SIGALRM)
+        fprintf(stderr, "\n");
+	if(sig_num == SIGALRM)
                 fprintf(stderr, "[*] Timer time exceeded\n");
         else
                 fprintf(stderr, "[*] Aborted by user\n");
@@ -75,12 +77,15 @@ void do_cleanup(cleanup_data_t cleanup_data) {
         for(int i = 0; i < 3; i++) {
                 int reply_a = 0, reply_b = 0;
 
-                if(cleanup_data.ip_b)
+                if(cleanup_data.ip_b) {
                         reply_b = arp_reply_from(fd, interface, arp_ctx_b);
+			log_reply(arp_ctx_b);
+		}
 
                 reply_a = arp_reply_from(fd, interface, arp_ctx_a);
-
-                if(reply_a != 0 || reply_b != 0) {
+		log_reply(arp_ctx_a);
+                
+		if(reply_a != 0 || reply_b != 0) {
                         fprintf(stderr, "ARP send falled while cleanup!\n");
                         exit(1);
                 }

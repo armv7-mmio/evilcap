@@ -22,4 +22,4 @@ Warning: This tool is for authorized network testing only! Use at your own risk.
 )abc";
 
 void print_help(void);
-void log_arp(arp_ctx_t arp_ctx);
+void log_reply(const arp_ctx_t arp_ctx);

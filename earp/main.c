@@ -38,8 +38,6 @@ static const struct option long_opts[] = {
 	{0, 0, 0, 0}
 };
 
-//volatile cleanup_data_t cleanup_data = {0};
-
 int main(int argc, char * argv[]) {	
 	bool is_dual_target = 0;
 	bool is_gratuitous = 0;
@@ -212,14 +210,15 @@ int main(int argc, char * argv[]) {
 		uint16_t delay_ms = rand_min + (uint16_t) random() % (rand_max - rand_min);
 		int reply_a = 0, reply_b = 0;
 		
-		if(is_dual_target) {
-			reply_a = arp_reply(fd, interface, arp_ctx_a);
-			reply_b = arp_reply(fd, interface, arp_ctx_b);
-		}	
-		else {
-			reply_a = arp_reply(fd, interface, arp_ctx_a);
-		}
+	
+		reply_a = arp_reply(fd, interface, arp_ctx_a);
+		log_reply(arp_ctx_a);
 
+		if(is_dual_target) {
+			reply_b = arp_reply(fd, interface, arp_ctx_b);
+			log_reply(arp_ctx_b);
+		}	
+		
 		if(reply_a != 0 || reply_b != 0) {
 			fprintf(stderr, "ARP send falled, exiting without cleanup!\n");
 			exit(1);
