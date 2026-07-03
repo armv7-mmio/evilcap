@@ -44,7 +44,7 @@ int arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx) {
 	arpf.arp_op = htons(ARPOP_REQUEST);
 	
 	struct sockaddr * saddr = (struct sockaddr *)&sll;
-
+	for(int i = 0; i < 3; i++) {
 	ssize_t tx_n = sendto(fd, &arpf, sizeof(arpf), 0, saddr, sizeof(sll)); 
 
 	if(tx_n < 0){
@@ -52,7 +52,7 @@ int arp_resolve(int fd, const char * interface, arp_ctx_t arp_ctx) {
 		fprintf(stderr, "[X] Error: unable to send: %s\n", strerror(errno));
 		return err;
 	}
-	
+	}
 	while(get_time_ms() < end_time) {
 		ssize_t n = recv(fd, &arpf_recv, sizeof(arpf_recv), MSG_DONTWAIT);
 		

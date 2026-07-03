@@ -10,4 +10,6 @@ typedef struct {
 
 void setup_signals(void);
 
-void cleanup_handler(int sig);
+void do_cleanup(cleanup_data_t cleanup_data);
+
+void signal_handler(int sig);

@@ -20,6 +20,8 @@
 #define DELAY_MIN 100
 #define DELAY_MAX 500 
 
+volatile sig_atomic_t is_stopping = 0;
+
 static const char * optstring = "hdgsa:b:t:i:m:M:T:";
 static const struct option long_opts[] = {
 	{"help", no_argument, 0, 'h'},
@@ -36,7 +38,7 @@ static const struct option long_opts[] = {
 	{0, 0, 0, 0}
 };
 
-volatile cleanup_data_t cleanup_data = {0};
+//volatile cleanup_data_t cleanup_data = {0};
 
 int main(int argc, char * argv[]) {	
 	bool is_dual_target = 0;
@@ -55,8 +57,10 @@ int main(int argc, char * argv[]) {
 	int rand_min = DELAY_MIN;
 	int rand_max = DELAY_MAX;
 	int timeout = -1;
+
 	arp_ctx_t arp_ctx_a = {0};
 	arp_ctx_t arp_ctx_b = {0};
+	cleanup_data_t cleanup_data;
 
 	for (;;) {
 		opt = getopt_long(argc, argv, optstring, long_opts, &opt);
@@ -165,8 +169,8 @@ int main(int argc, char * argv[]) {
 	cleanup_data.interface = interface;
 	cleanup_data.ip_a = arp_ctx_a.dst_ip;
 	cleanup_data.ip_b = arp_ctx_b.dst_ip;
-	cleanup_data.mac_dst_a = dst_mac_a;
-	cleanup_data.mac_dst_b = dst_mac_b;
+	cleanup_data.mac_dst_a = dst_mac_b;
+	cleanup_data.mac_dst_b = dst_mac_a;
 	
 	if(is_dual_target) {
 		if(is_gratuitous) {
@@ -200,6 +204,11 @@ int main(int argc, char * argv[]) {
 		alarm(timeout);
 
 	for(;;) {
+		if(is_stopping){
+			do_cleanup(cleanup_data);
+		}
+		else {
+
 		uint16_t delay_ms = rand_min + (uint16_t) random() % (rand_max - rand_min);
 		int reply_a = 0, reply_b = 0;
 		
@@ -219,6 +228,6 @@ int main(int argc, char * argv[]) {
 		if(!is_arp_storm)
 			usleep(delay_ms * 1000);
 	}
-
+	}
 	return 0;
 }

@@ -12,19 +12,25 @@
 #include "arp.h"
 #include "util.h"
 
-extern cleanup_data_t cleanup_data;
+extern volatile sig_atomic_t is_stopping;
+volatile sig_atomic_t sig_num;
 
 void setup_signals(void) {
-	signal(SIGINT, cleanup_handler);
-	signal(SIGALRM, cleanup_handler);
-	signal(SIGTERM, cleanup_handler);
-	signal(SIGQUIT, cleanup_handler);
-	signal(SIGHUP, cleanup_handler);
-	signal(SIGTSTP, cleanup_handler);
+	signal(SIGINT, signal_handler);
+	signal(SIGALRM, signal_handler);
+	signal(SIGTERM, signal_handler);
+	signal(SIGQUIT, signal_handler);
+	signal(SIGHUP, signal_handler);
+	signal(SIGTSTP, signal_handler);
 }
 
-void cleanup_handler(int sig) {
-        if(sig == SIGALRM)
+void signal_handler(int sig) {
+	is_stopping = 1;
+	sig_num = sig;
+}
+
+void do_cleanup(cleanup_data_t cleanup_data) {
+        if(sig_num == SIGALRM)
                 fprintf(stderr, "[*] Timer time exceeded\n");
         else
                 fprintf(stderr, "[*] Aborted by user\n");
@@ -82,6 +88,6 @@ void cleanup_handler(int sig) {
                 usleep(333 * 1000);
         }
 
-        exit(sig);
+        exit(sig_num);
 }
 
