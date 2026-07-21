@@ -1,6 +1,14 @@
+ifneq ($(DEB_HOST_GNU_TYPE),)
+	TARGET_ARCH := --target=$(DEB_HOST_GNU_TYPE)
+endif
+
 CC := clang
-CFLAGS := -Wall -Wextra -O3
-LDFLAGS := -s -O3
+COMMON_FLAGS := -fuse-ld=lld -O3
+COMMON_FLAGS += $(TARGET_FLAGS)
+CFLAGS := -Wall -Wextra
+LDFLAGS := 
+CFLAGS += $(COMMON_FLAGS)
+LDFLAGS += $(COMMON_FLAGS)
 BUILD_DIR := ./build
 BIN_DIR := ./bin
 MODULES := earp

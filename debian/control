@@ -1,0 +1,17 @@
+Source: evilcap
+Section: misc
+Priority: optional
+Maintainer: armv7-mmio <armv7-mmio@tuta.io>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+Standards-Version: 4.7.2
+Homepage: https://github.com/armv7-mmio/evilcap
+
+Package: evilcap
+Architecture: amd64 arm64 
+Depends:
+ ${shlibs:Depends}, ${misc:Depends}
+Description: kit of open source network security testing tools.
+ EvilCap is a lighweight command line tool. 
+ It writen for local network testing.

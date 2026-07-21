@@ -1,0 +1,16 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: https://github.com/
+Upstream-Name: evilcap
+Upstream-Contact: <preferred name and address to reach the upstream project>
+
+Files:
+ *
+Files:
+ *
+Copyright:
+ 2026 armv7-mmio <armv7-mmio@tuta.io>
+License: MIT
+
+License: MIT
+ Please see the full text of the MIT license in the file
+ /usr/share/common-licenses/MIT on your system.

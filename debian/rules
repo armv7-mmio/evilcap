@@ -1,0 +1,5 @@
+#!/usr/bin/make -f
+export DEB_HOST_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+export CC = clang
+%:
+	dh $@
