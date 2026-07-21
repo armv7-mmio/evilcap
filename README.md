@@ -15,16 +15,21 @@ EvilCap is a kit of open source network security testing tools.
 
 ## Building from source
 **Build requirements:**
-- **clang** or other C compiler (specified in Makefile);
-- **GNU/Make**;
-- **glibc** or **musl libc**;
-- **libbpf-dev**;
+- **clang**,
+- **GNU/Make**,
+- **glibc** or **musl libc**,
+- **libbpf-dev**,
 - **git**.
-  
+- 
+**For debian package build (optional):**
+- **dpkg-dev**
+- **debhelper**
+- **devutils**
+
 **Requirements install:**
 - **For Debian**:
 ```shell
-sudo apt install clang make libbpf-dev
+sudo apt install clang make libbpf-dev debhelper devutils dpkg-dev
 ```
 - **For Arch Linux**:
 ```shell
@@ -36,12 +41,18 @@ git clone https://github.com/armv7-mmio/evilcap
 cd evilcap
 ```
 **Start build:**
+For this machine architecture:
 ```shell
-make
+./build.sh
+```
+For other architecture:
+```shell
+./build.sh architecture
 ```
 **Remove build files:**
 ```shell
-make clean
+./clean.sh
 ```
 ## License
 MIT License. See LICENSE file for more.
+
