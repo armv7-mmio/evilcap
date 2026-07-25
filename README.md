@@ -18,7 +18,6 @@ EvilCap is a kit of open source network security testing tools.
 - **clang**,
 - **GNU/Make**,
 - **glibc** or **musl libc**,
-- **libbpf-dev**,
 - **git**.
 
 **For debian package build (optional):**
@@ -29,11 +28,11 @@ EvilCap is a kit of open source network security testing tools.
 **Requirements install:**
 - **For Debian**:
 ```shell
-sudo apt install clang make libbpf-dev debhelper devscripts dpkg-dev
+sudo apt install clang make debhelper devscripts dpkg-dev
 ```
 - **For Arch Linux**:
 ```shell
-sudo pacman -S base-devel clang libbpf
+sudo pacman -S base-devel clang
 ```
 **Clone git repo:**
 ```shell
