@@ -41,13 +41,8 @@ git clone https://github.com/armv7-mmio/evilcap
 cd evilcap
 ```
 **Start build:**
-For current machine architecture:
 ```shell
-./build.sh
-```
-For other architectures:
-```shell
-./build.sh architecture
+./build.sh [target] [architecture]
 ```
 **Remove build files:**
 ```shell
