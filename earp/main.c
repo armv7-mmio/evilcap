@@ -58,12 +58,7 @@ int main(int argc, char * argv[]) {
 
 	arp_ctx_t arp_ctx_a = {0};
 	arp_ctx_t arp_ctx_b = {0};
-	cleanup_data_t cleanup_data;
-	
-	if(argc < 5) {
-		print_usage();
-		exit(1);
-	}
+	cleanup_data_t cleanup_data;	
 
 	for (;;) {
 		opt = getopt_long(argc, argv, optstring, long_opts, &opt);
@@ -113,7 +108,12 @@ int main(int argc, char * argv[]) {
 				break;
 		}
 	}
-		
+	
+	if(argc < 5) {
+		print_usage();
+		exit(1);
+	}
+
 	if(check_targets_ip(arp_ctx_a.dst_ip, arp_ctx_b.dst_ip, is_dual_target))
 		exit(1);
 	
