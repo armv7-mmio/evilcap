@@ -7,7 +7,9 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <sys/socket.h>
+#include <sys/syscall.h>
 #include <net/ethernet.h>
+#include <linux/capability.h>
 
 #include "arp.h"
 #include "util.h"
@@ -86,7 +88,7 @@ void do_cleanup(cleanup_data_t cleanup_data) {
 		log_reply(arp_ctx_a);
                 
 		if(reply_a != 0 || reply_b != 0) {
-                        fprintf(stderr, "ARP send falled while cleanup!\n");
+                        fprintf(stderr, "[x] Error: ARP send falled while cleanup!\n");
                         exit(1);
                 }
 
@@ -95,4 +97,19 @@ void do_cleanup(cleanup_data_t cleanup_data) {
 
         exit(sig_num);
 }
+
+int check_capabilities() {
+	struct __user_cap_header_struct hdrp = {0};	
+	struct __user_cap_data_struct datap = {0};
+	
+	hdrp.version = _LINUX_CAPABILITY_VERSION_1;
+	hdrp.pid = 0;
+	
+	syscall(SYS_capget, &hdrp, &datap);
+	
+	if(datap.effective & (1U << CAP_NET_RAW))
+		return 1;
+	else
+		return 0;
+}	
 

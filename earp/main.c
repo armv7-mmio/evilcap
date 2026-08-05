@@ -59,6 +59,11 @@ int main(int argc, char * argv[]) {
 	arp_ctx_t arp_ctx_a = {0};
 	arp_ctx_t arp_ctx_b = {0};
 	cleanup_data_t cleanup_data;
+	
+	if(argc < 5) {
+		print_help();
+		exit(1);
+	}
 
 	for (;;) {
 		opt = getopt_long(argc, argv, optstring, long_opts, &opt);
@@ -104,7 +109,7 @@ int main(int argc, char * argv[]) {
 				break;
 		}
 	}
-	
+		
 	if(check_targets_ip(arp_ctx_a.dst_ip, arp_ctx_b.dst_ip, is_dual_target))
 		exit(1);
 	
@@ -113,10 +118,16 @@ int main(int argc, char * argv[]) {
 	
 	if(check_rand_ranges(rand_min, rand_max))
 		exit(1);
+	
+	if(check_capabilities() == 0) {
+		fprintf(stderr, "[!] No cap_net_raw capability, run it as root or set it\n");
+		exit(1);
+	}
+
 
 	if(check_interface(interface))
 		exit(1);
-
+	
 	fd = socket(AF_PACKET, SOCK_DGRAM, htons(ETH_P_ARP));
 	
 	if(fd < 0) {

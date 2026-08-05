@@ -3,10 +3,10 @@ ifneq ($(DEB_HOST_GNU_TYPE),)
 endif
 
 CC := clang
-COMMON_FLAGS := -O3
+COMMON_FLAGS := -O3 
 COMMON_FLAGS += $(TARGET_FLAGS)
 CFLAGS := -Wall -Wextra
-LDFLAGS := -fuse-ld=lld
+LDFLAGS := 
 CFLAGS += $(COMMON_FLAGS)
 LDFLAGS += $(COMMON_FLAGS)
 BUILD_DIR := ./build

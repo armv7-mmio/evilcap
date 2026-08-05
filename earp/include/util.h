@@ -13,3 +13,5 @@ void setup_signals(void);
 void do_cleanup(cleanup_data_t cleanup_data);
 
 void signal_handler(int sig);
+
+int check_capabilities(void);
