@@ -2,7 +2,7 @@
 EvilARP - advanced ARP poisoning tool.
 # Synopsis
 ```shell
-sudo earp [options] <target> <interface>
+earp -i <interface> -t <target> [-b <second_target] [options]
 ```
 # Description
 

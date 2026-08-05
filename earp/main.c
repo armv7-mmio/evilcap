@@ -61,13 +61,17 @@ int main(int argc, char * argv[]) {
 	cleanup_data_t cleanup_data;
 	
 	if(argc < 5) {
-		print_help();
+		print_usage();
 		exit(1);
 	}
 
 	for (;;) {
 		opt = getopt_long(argc, argv, optstring, long_opts, &opt);
 		
+		if(opt == '?') {
+			print_usage();
+			exit(1);
+		}		
 		if(opt == -1)
 			break;
 		
@@ -123,7 +127,6 @@ int main(int argc, char * argv[]) {
 		fprintf(stderr, "[!] No cap_net_raw capability, run it as root or set it\n");
 		exit(1);
 	}
-
 
 	if(check_interface(interface))
 		exit(1);

@@ -1,9 +1,8 @@
 #pragma once
 #include "arp.h"
 
-static const char * help_msg = R"abc(
-EvilARP v1.0
-Usage: earp [options]
+static const char * help_msg = R"abc(EvilARP v1.0
+Usage: earp -i <interface> -t <target> [-b <second_target] [options]
 Options: 
 	-h, --help              Show this message.
 	-t, --target            Specify the target IP address.
@@ -20,6 +19,8 @@ Notes:  For dual-target mode, use -d with both -a and -b flags.
         ARP storm mode may crash the network!
 Warning: This tool is for authorized network testing only! Use at your own risk.
 )abc";
+static const char * usage_msg = "Usage: earp -i <interface> -t <target> [-b <second_target] [options]\n";
 
 void print_help(void);
+void print_usage(void);
 void log_reply(const arp_ctx_t arp_ctx);

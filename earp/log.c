@@ -8,6 +8,10 @@ void print_help(void) {
 	fprintf(stderr, "%s", help_msg);
 }
 
+void print_usage(void) {
+	fprintf(stderr, "%s", usage_msg);
+}
+
 void log_gratuitous(const uint8_t * mac_addr, const char * ip_addr) {
 	char mac_str[32];
 	ether_ntoa_r((struct ether_addr *)mac_addr, mac_str);
